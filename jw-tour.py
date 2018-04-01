@@ -1,4 +1,6 @@
 from selenium import webdriver
+from datetime import date
+
 
 def get_month_days(days_divs):
     days_divs_text = [day.text for day in days_divs]
@@ -11,6 +13,26 @@ def get_month_days(days_divs):
 
     month_days = days_divs[start:end]
     return month_days
+
+
+def month_number(month_name):
+    months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    return months.index(month_name)+1
+
+
+def parse_month(month_year):
+    month_year_sep = month_year.split()
+    year = int(month_year_sep[1])
+    month_name = month_year_sep[0]
+    month = month_number(month_name)
+    return year, month
+
+
+def get_dates(month_year, dates_str):
+    year, month = parse_month(month_year)
+    days = map(int, dates_str)
+    dates = [date(year, month, day) for day in days]
+    return dates
 
 
 class JWBookSite:
@@ -36,13 +58,14 @@ class JWBookSite:
         days_divs = month_div.find_elements_by_css_selector('div.day')
         month_days = get_month_days(days_divs)
 
-        dates = []
+        days_str = []
         for day in month_days:
             cal_day = day.find_element_by_css_selector('div.calendar-day')
             class_attr = cal_day.get_attribute('class')
             if 'has-availability' in class_attr:
-                dates.append(int(day.text))
-        return (month_name, dates)
+                days_str.append(int(day.text))
+
+        return get_dates(month_name, days_str)
 
 
 if __name__ == '__main__':
@@ -52,7 +75,3 @@ if __name__ == '__main__':
     site.next_month()
     avail_dates = site.current_month_dates()
     print(avail_dates)
-
-
-
-
