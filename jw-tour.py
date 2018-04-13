@@ -1,5 +1,11 @@
 from selenium import webdriver
 from datetime import date
+import smtplib
+import ConfigParser
+from os.path import expanduser
+
+
+
 
 
 def get_month_days(days_divs):
@@ -35,6 +41,13 @@ def get_dates(month_year, dates_str):
     return dates
 
 
+class Client:
+    def __init__(self, first_name, email, requested_date):
+        self.first_name = first_name
+        self.email = email
+        self.requested_date = requested_date
+
+
 class JWBookSite:
     def __init__(self):
         driver = webdriver.Chrome('/Users/victoria/Downloads/chromedriver')
@@ -43,6 +56,15 @@ class JWBookSite:
         frame = driver.find_element_by_id('_pbf_1')
         driver.switch_to.frame(frame)
         self.driver = driver
+
+
+    def available_dates(self, number_of_months):
+        avail_months_dates = []
+        for item in range(number_of_months):
+            dates = self.current_month_dates()
+            avail_months_dates.extend(dates)
+            self.next_month()
+        return avail_months_dates
 
     def next_month(self):
         div = self.driver.find_element_by_class_name('right-arrow-wrap')
@@ -68,10 +90,43 @@ class JWBookSite:
         return get_dates(month_name, days_str)
 
 
+def check_client(client, avail_dates):
+    if client.requested_date in avail_dates:
+        subject = 'Requested date is available'
+        message = 'Date {} is available'.format(client.requested_date)
+        send_email(client.email, subject, message)
+
+
+def send_email(client_email, subject, message):
+    path = "~/jw-tour.ini"
+    from_address = get_param(path, 'SMTP', 'from_address')
+    username = get_param(path, 'SMTP', 'username')
+    password = get_param(path, 'SMTP', 'password')
+    address = get_param(path, 'SMTP', 'address')
+    port = int(get_param(path, 'SMTP', 'port'))
+    server = smtplib.SMTP(address, port)
+    server.starttls()
+    server.login(username, password)
+    smtp_message = 'Subject: {}\n\n{}'.format(subject, message)
+    server.sendmail(from_address, client_email, smtp_message)
+    server.quit()
+    print("Email was sent to: {}".format(client_email))
+
+clients = [
+]
+
+
+def get_param(path, section, key):
+    config = ConfigParser.ConfigParser()
+    config.read(expanduser(path))
+    value = config.get(section, key)
+    return value
+
+
 if __name__ == '__main__':
     site = JWBookSite()
-    avail_dates = site.current_month_dates()
-    print(avail_dates)
-    site.next_month()
-    avail_dates = site.current_month_dates()
-    print(avail_dates)
+    avail_dates = site.available_dates(6)
+    print(len(avail_dates))
+
+    for client in clients:
+        check_client(client, avail_dates)
