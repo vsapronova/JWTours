@@ -5,9 +5,6 @@ import ConfigParser
 from os.path import expanduser
 
 
-
-
-
 def get_month_days(days_divs):
     days_divs_text = [day.text for day in days_divs]
 
@@ -48,6 +45,12 @@ class Client:
         self.requested_date = requested_date
 
 
+class ConnectionSMTP:
+    def __init__(self, address, port):
+        self.address = address
+        self.port = port
+
+
 class JWBookSite:
     def __init__(self):
         driver = webdriver.Chrome('/Users/victoria/Downloads/chromedriver')
@@ -56,7 +59,6 @@ class JWBookSite:
         frame = driver.find_element_by_id('_pbf_1')
         driver.switch_to.frame(frame)
         self.driver = driver
-
 
     def available_dates(self, number_of_months):
         avail_months_dates = []
@@ -90,29 +92,38 @@ class JWBookSite:
         return get_dates(month_name, days_str)
 
 
-def check_client(client, avail_dates):
+class Sender:
+    def __init__(self):
+        path = "~/jw-tour.ini"
+        from_address = get_param(path, 'SMTP', 'from_address')
+        username = get_param(path, 'SMTP', 'username')
+        password = get_param(path, 'SMTP', 'password')
+        address = get_param(path, 'SMTP', 'address')
+        port = int(get_param(path, 'SMTP', 'port'))
+        server = smtplib.SMTP(address, port)
+        server.starttls()
+        server.login(username, password)
+        self.server = server
+        self.from_address = from_address
+
+    def quit(self):
+        self.server.quit()
+
+    def send_email(self, client_email, subject, message):
+        smtp_message = 'Subject: {}\n\n{}'.format(subject, message)
+        self.server.sendmail(self.from_address, client_email, smtp_message)
+        print("Email was sent to: {}".format(client_email))
+
+
+def check_client(sender, client, avail_dates):
     if client.requested_date in avail_dates:
         subject = 'Requested date is available'
         message = 'Date {} is available'.format(client.requested_date)
-        send_email(client.email, subject, message)
+        sender.send_email(client.email, subject, message)
 
-
-def send_email(client_email, subject, message):
-    path = "~/jw-tour.ini"
-    from_address = get_param(path, 'SMTP', 'from_address')
-    username = get_param(path, 'SMTP', 'username')
-    password = get_param(path, 'SMTP', 'password')
-    address = get_param(path, 'SMTP', 'address')
-    port = int(get_param(path, 'SMTP', 'port'))
-    server = smtplib.SMTP(address, port)
-    server.starttls()
-    server.login(username, password)
-    smtp_message = 'Subject: {}\n\n{}'.format(subject, message)
-    server.sendmail(from_address, client_email, smtp_message)
-    server.quit()
-    print("Email was sent to: {}".format(client_email))
 
 clients = [
+    
 ]
 
 
@@ -128,5 +139,7 @@ if __name__ == '__main__':
     avail_dates = site.available_dates(6)
     print(len(avail_dates))
 
+    sender = Sender()
     for client in clients:
-        check_client(client, avail_dates)
+        check_client(sender, client, avail_dates)
+    sender.quit()
