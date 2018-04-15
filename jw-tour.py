@@ -1,8 +1,9 @@
 from selenium import webdriver
 from datetime import date
 import smtplib
-import ConfigParser
+import configparser
 from os.path import expanduser
+import mysql.connector
 
 
 def get_month_days(days_divs):
@@ -38,17 +39,10 @@ def get_dates(month_year, dates_str):
     return dates
 
 
-class Client:
-    def __init__(self, first_name, email, requested_date):
-        self.first_name = first_name
+class Request:
+    def __init__(self, email, requested_date):
         self.email = email
         self.requested_date = requested_date
-
-
-class ConnectionSMTP:
-    def __init__(self, address, port):
-        self.address = address
-        self.port = port
 
 
 class JWBookSite:
@@ -88,7 +82,7 @@ class JWBookSite:
             class_attr = cal_day.get_attribute('class')
             if 'has-availability' in class_attr:
                 days_str.append(int(day.text))
-
+        print(month_name, days_str)
         return get_dates(month_name, days_str)
 
 
@@ -115,31 +109,44 @@ class Sender:
         print("Email was sent to: {}".format(client_email))
 
 
-def check_client(sender, client, avail_dates):
-    if client.requested_date in avail_dates:
+def check_request(sender, request, avail_dates):
+    print("Checking request, email: {}, requested_date: {}".format(request.email, request.requested_date))
+    if request.requested_date in avail_dates:
         subject = 'Requested date is available'
-        message = 'Date {} is available'.format(client.requested_date)
-        sender.send_email(client.email, subject, message)
-
-
-clients = [
-    
-]
+        message = 'Date {} is available'.format(request.requested_date)
+        sender.send_email(request.email, subject, message)
 
 
 def get_param(path, section, key):
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(expanduser(path))
     value = config.get(section, key)
     return value
 
 
+def read_requests():
+    connection = mysql.connector.connect(
+        host="localhost",
+        port=3306,
+        user='root',
+        password="password",
+        database='My_clients'
+    )
+    cursor = connection.cursor()
+    cursor.execute("SELECT Email, RequestedDate FROM Requests")
+    requests = []
+    for (email, requested_date) in cursor:
+        requests.append(Request(email, requested_date.date()))
+    connection.close()
+    print("Received {} requests".format(len(requests)))
+    return requests
+
+
 if __name__ == '__main__':
     site = JWBookSite()
     avail_dates = site.available_dates(6)
-    print(len(avail_dates))
-
+    requests = read_requests()
     sender = Sender()
-    for client in clients:
-        check_client(sender, client, avail_dates)
+    for request in requests:
+        check_request(sender, request, avail_dates)
     sender.quit()
