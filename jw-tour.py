@@ -109,6 +109,15 @@ class Sender:
         print("Email was sent to: {}".format(client_email))
 
 
+class DBConfig:
+    def __init__(self, path):
+        self.host = get_param(path, 'DB', 'host')
+        self.port = int(get_param(path, 'DB', 'port'))
+        self.user = get_param(path, 'DB', 'user')
+        self.password = get_param(path, 'DB', 'password')
+        self.database = get_param(path, 'DB', 'database')
+
+
 def check_request(sender, request, avail_dates):
     print("Checking request, email: {}, requested_date: {}".format(request.email, request.requested_date))
     if request.requested_date in avail_dates:
@@ -124,13 +133,13 @@ def get_param(path, section, key):
     return value
 
 
-def read_requests():
+def read_requests(config):
     connection = mysql.connector.connect(
-        host="localhost",
-        port=3306,
-        user='root',
-        password="password",
-        database='My_clients'
+        host=config.host,
+        port=config.port,
+        user=config.user,
+        password=config.password,
+        database=config.database
     )
     cursor = connection.cursor()
     cursor.execute("SELECT Email, RequestedDate FROM Requests")
@@ -144,8 +153,12 @@ def read_requests():
 
 if __name__ == '__main__':
     site = JWBookSite()
-    avail_dates = site.available_dates(6)
-    requests = read_requests()
+    path = "~/jw-tour.ini"
+    config = DBConfig(path)
+    number_of_months = int(get_param(path, 'JWTours', 'number_of_months'))
+    avail_dates = site.available_dates(number_of_months)
+
+    requests = read_requests(config)
     sender = Sender()
     for request in requests:
         check_request(sender, request, avail_dates)
