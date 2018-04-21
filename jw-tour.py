@@ -1,5 +1,6 @@
 from selenium import webdriver
 from datetime import date
+from dateutil.relativedelta import relativedelta
 import smtplib
 import configparser
 from os.path import expanduser
@@ -133,7 +134,7 @@ def get_param(path, section, key):
     return value
 
 
-def read_requests(config):
+def read_requests(config, start_date, end_date):
     connection = mysql.connector.connect(
         host=config.host,
         port=config.port,
@@ -142,7 +143,11 @@ def read_requests(config):
         database=config.database
     )
     cursor = connection.cursor()
-    cursor.execute("SELECT Email, RequestedDate FROM Requests")
+    str_a = start_date.strftime('%Y-%m-%d')
+    str_b = end_date.strftime('%Y-%m-%d')
+    sql_query = "SELECT Email, RequestedDate FROM Requests WHERE RequestedDate BETWEEN '{}' AND '{}'".format(str_a, str_b)
+    print(sql_query)
+    cursor.execute(sql_query)
     requests = []
     for (email, requested_date) in cursor:
         requests.append(Request(email, requested_date.date()))
@@ -157,8 +162,9 @@ if __name__ == '__main__':
     config = DBConfig(path)
     number_of_months = int(get_param(path, 'JWTours', 'number_of_months'))
     avail_dates = site.available_dates(number_of_months)
-
-    requests = read_requests(config)
+    today = date.today()
+    last_date = today + relativedelta(months=number_of_months)
+    requests = read_requests(config, start_date=today, end_date=last_date)
     sender = Sender()
     for request in requests:
         check_request(sender, request, avail_dates)
