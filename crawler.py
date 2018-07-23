@@ -1,10 +1,9 @@
 from selenium import webdriver
 from datetime import date
 from dateutil.relativedelta import relativedelta
-import smtplib
-import configparser
-from os.path import expanduser
-import mysql.connector
+import db
+from configuration import get_param
+from sender import Sender
 
 
 def get_month_days(days_divs):
@@ -38,12 +37,6 @@ def get_dates(month_year, dates_str):
     days = map(int, dates_str)
     dates = [date(year, month, day) for day in days]
     return dates
-
-
-class Request:
-    def __init__(self, email, requested_date):
-        self.email = email
-        self.requested_date = requested_date
 
 
 class JWBookSite:
@@ -87,38 +80,6 @@ class JWBookSite:
         return get_dates(month_name, days_str)
 
 
-class Sender:
-    def __init__(self):
-        path = "~/jw-tour.ini"
-        from_address = get_param(path, 'SMTP', 'from_address')
-        username = get_param(path, 'SMTP', 'username')
-        password = get_param(path, 'SMTP', 'password')
-        address = get_param(path, 'SMTP', 'address')
-        port = int(get_param(path, 'SMTP', 'port'))
-        server = smtplib.SMTP(address, port)
-        server.starttls()
-        server.login(username, password)
-        self.server = server
-        self.from_address = from_address
-
-    def quit(self):
-        self.server.quit()
-
-    def send_email(self, client_email, subject, message):
-        smtp_message = 'Subject: {}\n\n{}'.format(subject, message)
-        self.server.sendmail(self.from_address, client_email, smtp_message)
-        print("Email was sent to: {}".format(client_email))
-
-
-class DBConfig:
-    def __init__(self, path):
-        self.host = get_param(path, 'DB', 'host')
-        self.port = int(get_param(path, 'DB', 'port'))
-        self.user = get_param(path, 'DB', 'user')
-        self.password = get_param(path, 'DB', 'password')
-        self.database = get_param(path, 'DB', 'database')
-
-
 def check_request(sender, request, avail_dates):
     print("Checking request, email: {}, requested_date: {}".format(request.email, request.requested_date))
     if request.requested_date in avail_dates:
@@ -127,44 +88,15 @@ def check_request(sender, request, avail_dates):
         sender.send_email(request.email, subject, message)
 
 
-def get_param(path, section, key):
-    config = configparser.ConfigParser()
-    config.read(expanduser(path))
-    value = config.get(section, key)
-    return value
-
-
-def read_requests(config, start_date, end_date):
-    connection = mysql.connector.connect(
-        host=config.host,
-        port=config.port,
-        user=config.user,
-        password=config.password,
-        database=config.database
-    )
-    cursor = connection.cursor()
-    str_a = start_date.strftime('%Y-%m-%d')
-    str_b = end_date.strftime('%Y-%m-%d')
-    sql_query = "SELECT Email, RequestedDate FROM Requests WHERE RequestedDate BETWEEN '{}' AND '{}'".format(str_a, str_b)
-    print(sql_query)
-    cursor.execute(sql_query)
-    requests = []
-    for (email, requested_date) in cursor:
-        requests.append(Request(email, requested_date.date()))
-    connection.close()
-    print("Received {} requests".format(len(requests)))
-    return requests
-
-
 if __name__ == '__main__':
     site = JWBookSite()
     path = "~/jw-tour.ini"
-    config = DBConfig(path)
+    config = db.DBConfig(path)
     number_of_months = int(get_param(path, 'JWTours', 'number_of_months'))
     avail_dates = site.available_dates(number_of_months)
     today = date.today()
     last_date = today + relativedelta(months=number_of_months)
-    requests = read_requests(config, start_date=today, end_date=last_date)
+    requests = db.read_requests(config, start_date=today, end_date=last_date)
     sender = Sender()
     for request in requests:
         check_request(sender, request, avail_dates)
