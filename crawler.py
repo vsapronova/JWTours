@@ -85,7 +85,7 @@ def check_request(sender, request, avail_dates):
     if request.requested_date in avail_dates:
         subject = 'Requested date is available'
         message = 'Date {} is available'.format(request.requested_date)
-        sender.send_email(request.email, subject, message)
+        sender.send_email_to_request(request.email, request.key, subject, message)
 
 
 if __name__ == '__main__':

@@ -99,7 +99,22 @@ def confirm_request(config, key):
     cursor.execute(query)
     connection.commit()
     connection.close()
-    return "Good"
+
+
+def unsubscribe_request(config, key):
+    connection = mysql.connector.connect(
+        host=config.host,
+        port=config.port,
+        user=config.user,
+        password=config.password,
+        database=config.database
+    )
+    cursor = connection.cursor()
+    query = "UPDATE Requests SET Active = '0' Where UnKey = '{}'".format(key)
+    cursor.execute(query)
+    connection.commit()
+    connection.close()
+
 
 
 

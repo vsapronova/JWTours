@@ -23,3 +23,9 @@ class Sender:
         smtp_message = 'Subject: {}\n\n{}'.format(subject, message)
         self.server.sendmail(self.from_address, client_email, smtp_message)
         print("Email was sent to: {}".format(client_email))
+
+
+    def send_email_to_request(self, email, key, subject, message):
+        unsub_link = "http://127.0.0.1:5000/unsubscribe_request?key={0}&email={1}".format(key, email)
+        unsub_message = 'If you want to unsubscribe click here: {}.'.format(unsub_link)
+        self.send_email(email, subject, message + unsub_message)
