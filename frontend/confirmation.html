@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+  <head>
+    <meta charset="UTF-8"/>
+    <title>Confirmation page</title>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+
+  </head>
+
+
+
+  <body>
+
+    <div id = "progress" >
+      Confirmation is in progress...
+    </div>
+
+      <div id="email_confirmation" style="display: none">
+
+      <h2>Thank you!Your email is confirmed.</h2>
+      When your requested date will be available we will send your an email.
+
+    </div>
+
+    <div id="not_confirmed" style="display: none">
+
+      <strong>Sorry!</strong>Your email is NOT confirmed.
+
+    </div>
+
+  </body>
+
+
+</html>
+
+<script>
+$(document).ready(function(){
+
+  $.ajax({
+    type: "GET",
+    url: "http://127.0.0.1:5000/confirm_request" + window.location.search
+  }).done(function(){
+    $("#progress").hide()
+    $("#email_confirmation").show();
+  }).error(function(){
+    $(("#progress).hide()
+    $("#not_confirmed").show();
+  });
+});
+
+
+</script>

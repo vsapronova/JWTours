@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask import request
 from datetime import datetime
 import db
@@ -11,7 +11,12 @@ from flask_cors import cross_origin
 app = Flask("HelloWorld")
 
 
-@app.route('/create_request', methods=['POST'])
+@app.route('/<path:filename>')
+def static_file(filename):
+    return send_from_directory('/Users/victoria/Projects/JWTours/frontend', filename)
+
+
+@app.route('/api/create_request', methods=['POST'])
 @cross_origin()
 def create_request():
     #result = request.get_json()
@@ -35,7 +40,7 @@ def confirm_request():
     req = db.find_request_by_key(config, key)
     if req is not None and email == req.email:
         db.confirm_request(config, key)
-        return "Email is confirmed"
+        return "Thank you! Email is confirmed."
     else:
         return "NO"
 
@@ -47,9 +52,11 @@ def unsubscribe_request():
     req = db.find_request_by_key(config, key)
     if req is not None and email == req.email:
         db.unsubscribe_request(config, key)
-        return "Email is successfully unsubscribed"
+        return "Email is successfully unsubscribed."
     else:
         return "No"
+
+
 
 
 path = "~/jw-tour.ini"
