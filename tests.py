@@ -43,3 +43,16 @@ def test_popup_form(driver):
     assert "Ooops" in alert.text
 
 
+def test_empty_email():
+    driver.get('http://127.0.0.1:5000/home.html')
+    driver.find_element_by_id("inputEmail").send_keys(" ")
+
+    assert alert.text == "Please enter valid email address"
+
+
+def test_empty_date():
+    driver.get('http://127.0.0.1:5000/home.html')
+    driver.find_element_by_id("datepicker").send_keys(" ")
+
+    assert alert.text == "Please pick a date"
+
